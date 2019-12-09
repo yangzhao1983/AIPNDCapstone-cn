@@ -97,7 +97,7 @@
 
 # > **提示**：*不应* 在每个 notebook 框 (cell) 中进行太多操作。可以自由创建框，来进行数据探索。在这个项目中，可以在初始 notebook 中进行大量探索性操作。不要求对其进行组织，但请务必仔细阅读备注，理解每个代码框的用途。完成分析之后，你可以创建 notebook 副本，在其中去除多余数据，组织好你的每一步分析，从而形成信息连贯、结构紧密的报告。
 
-# In[1]:
+# In[97]:
 
 
 # 请在这一代码框内编写在这部分你需要的程序
@@ -117,20 +117,22 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, accuracy_score
 from sklearn.model_selection import train_test_split
 import scikitplot as skplt
+from ggplot import *
+from sklearn.metrics import roc_curve, auc
 get_ipython().run_line_magic('matplotlib', 'inline')
 np.random.seed(42)
 df = pd.read_csv("./WA_Fn-UseC_-Telco-Customer-Churn.csv")
 df.head()
 
 
-# In[2]:
+# In[98]:
 
 
 # 描述统计量
 df.describe()
 
 
-# In[3]:
+# In[99]:
 
 
 # 数据集的形状
@@ -138,7 +140,7 @@ df.shape
 # 数据集共有7043条数据，21个属性列
 
 
-# In[4]:
+# In[100]:
 
 
 # 数据类型
@@ -147,7 +149,7 @@ df.info()
 # 还有一列的数据为字符串，但是很明显这一列应该转成数值型：TotalCharges。其他列为字符串，是分类型数据。
 
 
-# In[5]:
+# In[101]:
 
 
 # 但是不能直接将TotalCharges从字符串转为数字类型，因为有的行该列为空。对数据集进行整理，删除该列为空的行。
@@ -159,7 +161,7 @@ df[mask]
 df.dropna(inplace=True)
 
 
-# In[6]:
+# In[102]:
 
 
 # 数据集中的各列没有空值，各行也没有重复值。
@@ -167,20 +169,20 @@ df.isna().sum()
 sum(df.duplicated())
 
 
-# In[7]:
+# In[103]:
 
 
 # 描述统计量
 df.describe()
 
 
-# In[8]:
+# In[104]:
 
 
 df['Churn'].value_counts()
 
 
-# In[9]:
+# In[105]:
 
 
 # 客户流失量的分布
@@ -188,7 +190,7 @@ plt.pie(df['Churn'].value_counts(), labels=['Non-Churned','Churned'], autopct='%
 plt.title('Churn Distribution');
 
 
-# In[10]:
+# In[106]:
 
 
 # define func for pie
@@ -210,7 +212,7 @@ def draw_pie(attr, labels=None, dataframe = df):
         fig.legend(labels = labels);
 
 
-# In[11]:
+# In[107]:
 
 
 # 客户性别和客户流失之间的关系
@@ -218,16 +220,18 @@ plt.bar(['male','female'],df.query("Churn=='Yes'")['gender'].value_counts(), alp
 plt.bar(['male','female'],df.query("Churn=='No'")['gender'].value_counts(), alpha = 0.3, label = 'Non-Churned')
 plt.legend();
 plt.title('Relation between gender and churn');
+plt.xlabel('Gender')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[12]:
+# In[108]:
 
 
 # 在流失的客户中，女性和男性的比重相仿。
 draw_pie('gender', dataframe=df)
 
 
-# In[13]:
+# In[109]:
 
 
 # 客户年龄和客户流失之间的关系
@@ -237,24 +241,26 @@ plt.legend();
 tick_locs = [0,1]
 plt.xticks(tick_locs, tick_locs);
 plt.title('Relation between SeniorCitizen and churn');
+plt.xlabel('SeniorCitizen')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[14]:
+# In[110]:
 
 
 # 较之于留下的客户，流失的客户中，老年人的比重较大。
 draw_pie('SeniorCitizen',labels=['Non_Senior','Senior'])
 
 
-# In[15]:
+# In[111]:
 
 
 # 年龄稍长的客户月消费普遍较高
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'SeniorCitizen', y = 'MonthlyCharges', color = base_color)
+sb.boxplot(data = df, x = 'SeniorCitizen', y = 'MonthlyCharges', color = base_color);
 
 
-# In[16]:
+# In[112]:
 
 
 # 客户是否有Partner和客户流失之间的关系
@@ -262,24 +268,26 @@ plt.bar(['Has Partner','No Partner'],df.query("Churn=='Yes'")['Partner'].value_c
 plt.bar(['Has Partner','No Partner'],df.query("Churn=='No'")['Partner'].value_counts(), alpha = 0.3, label = 'Non-Churned')
 plt.legend();
 plt.title('Relation between Partner and churn');
+plt.xlabel('Partner')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[17]:
+# In[113]:
 
 
 # 较之于留下的客户，流失的客户中，没有Partner的客户比重较大。
 draw_pie('Partner')
 
 
-# In[18]:
+# In[114]:
 
 
 # 有partner的用户订阅服务较长
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'Partner', y = 'tenure', color = base_color)
+sb.boxplot(data = df, x = 'Partner', y = 'tenure', color = base_color);
 
 
-# In[19]:
+# In[115]:
 
 
 # 客户是否有Dependents和客户流失之间的关系
@@ -287,33 +295,37 @@ plt.bar(['Has Dependents','No Dependents'],df.query("Churn=='Yes'")['Dependents'
 plt.bar(['Has Dependents','No Dependents'],df.query("Churn=='No'")['Dependents'].value_counts(), alpha = 0.3, label = 'Non-Churned')
 plt.legend();
 plt.title('Relation between Dependents and churn');
+plt.xlabel('Dependents')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[20]:
+# In[116]:
 
 
 # 较之于留下的客户，流失的客户中，没有Dependents的客户比重较大。
 draw_pie('Dependents',['no_Dependents','Dependents'])
 
 
-# In[21]:
+# In[117]:
 
 
 # 有Dependents的用户订阅服务较长
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'Dependents', y = 'tenure', color = base_color)
+sb.boxplot(data = df, x = 'Dependents', y = 'tenure', color = base_color);
 
 
-# In[22]:
+# In[118]:
 
 
 # 客户使用公司服务的月数和客户流失之间的关系
 plt.hist(df.query("Churn=='Yes'")['MonthlyCharges'], alpha = 0.3, label = 'Yes');
 plt.hist(df.query("Churn=='No'")['MonthlyCharges'], alpha = 0.3, label = 'No');
 plt.legend();
+plt.xlabel('MonthlyCharges')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[23]:
+# In[119]:
 
 
 # MonthlyCharges 的取值从18.25到118.75。
@@ -325,79 +337,87 @@ plt.bar(df['MC_levels'].unique(),df.query("Churn=='Yes'")['MC_levels'].value_cou
 plt.bar(df['MC_levels'].unique(),df.query("Churn=='No'")['MC_levels'].value_counts().sort_index(), alpha = 0.3, label = 'Non-Churned')
 plt.legend();
 plt.title('Relation between MonthlyCharges levels and churn');
+plt.xlabel('MonthlyCharges Levels')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[24]:
+# In[120]:
 
 
 # 留下的客户和流失的客户中，MonthlyCharges的分布情况是不同的。在流失的客户中，月消费60-90的客户比重最大，其次为90-120。
 draw_pie('MC_levels')
 
 
-# In[25]:
+# In[121]:
 
 
 # 月消费额没有异常值
 sb.boxplot(x = df['MonthlyCharges'], data=df);
 
 
-# In[26]:
+# In[122]:
 
 
 # 客户是否有PhoneService和客户流失之间的关系
 plt.bar(['Has PhoneService','No PhoneService'],df.query("Churn=='Yes'")['PhoneService'].value_counts(), alpha = 0.3,label = 'Churned')
 plt.bar(['Has PhoneService','No PhoneService'],df.query("Churn=='No'")['PhoneService'].value_counts(), alpha = 0.3, label = 'Non-Churned')
 plt.legend();
+plt.xlabel('Phone Service')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[27]:
+# In[123]:
 
 
 # 留下的客户和流失的客户中，有PhoneService的客户比重相仿。
 draw_pie('PhoneService',labels = ['no_PhoneService','PhoneService'])
 
 
-# In[28]:
+# In[124]:
 
 
 # 客户的MultipleLines服务和客户流失之间的关系
 plt.bar(df['MultipleLines'].unique(),df.query("Churn=='Yes'")['MultipleLines'].value_counts(), alpha = 0.3,label = 'Churned')
 plt.bar(df['MultipleLines'].unique(),df.query("Churn=='No'")['MultipleLines'].value_counts(), alpha = 0.3,label = 'Non-Churned')
 plt.legend();
+plt.xlabel('Phone Service')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[29]:
+# In[125]:
 
 
 # 留下的客户和流失的客户中，有/无MultipleLines，和没有phone service的客户比重相仿。
 draw_pie('MultipleLines')
 
 
-# In[30]:
+# In[126]:
 
 
 # 客户的InternetService服务和客户流失之间的关系
 plt.bar(df['InternetService'].unique(),df.query("Churn=='Yes'")['InternetService'].value_counts(), alpha = 0.3,label = 'Churned')
 plt.bar(df['InternetService'].unique(),df.query("Churn=='No'")['InternetService'].value_counts(), alpha = 0.3,label = 'Non-Churned')
 plt.legend();
+plt.xlabel('Internet Service')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[31]:
+# In[127]:
 
 
 # 留下的客户和流失的客户中，InternetService的分布情况是不同的。
 draw_pie('InternetService')
 
 
-# In[32]:
+# In[128]:
 
 
 # Fiber optic的月消费较高。
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'InternetService', y = 'MonthlyCharges', color = base_color)
+sb.boxplot(data = df, x = 'InternetService', y = 'MonthlyCharges', color = base_color);
 
 
-# In[33]:
+# In[129]:
 
 
 # 客户的一些服务有三种状态，1.yes, 2. no, 3. no internet service. 可以将2和3统一成一类。
@@ -408,265 +428,286 @@ def changeNoInternetServiceToNo(x):
         return 'No'
 
 
-# In[34]:
+# In[130]:
 
 
 # 客户的OnlineSecurity服务有三种状态，1.yes, 2. no, 3. no internet service. 可以将2和3统一成一类。
 df['OnlineSecurity'] = df['OnlineSecurity'].apply(changeNoInternetServiceToNo)
 
 
-# In[35]:
+# In[131]:
 
 
 # 客户的OnlineSecurity服务和客户流失之间的关系
 plt.bar(df['OnlineSecurity'].unique(),df.query("Churn=='Yes'")['OnlineSecurity'].value_counts(), alpha = 0.3,label = 'Churned')
 plt.bar(df['OnlineSecurity'].unique(),df.query("Churn=='No'")['OnlineSecurity'].value_counts(), alpha = 0.3,label = 'Non-Churned')
 plt.legend();
+plt.xlabel('Online Security')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[36]:
+# In[132]:
 
 
 # 较之于留下的客户，流失的客户中，没有OnlineSecurity的客户占比重较大。
 draw_pie('OnlineSecurity')
 
 
-# In[37]:
+# In[133]:
 
 
 # 有OnlineSecurity的客户月消费较高。
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'OnlineSecurity', y = 'MonthlyCharges', color = base_color)
+sb.boxplot(data = df, x = 'OnlineSecurity', y = 'MonthlyCharges', color = base_color);
 
 
-# In[38]:
+# In[134]:
 
 
 # 客户的OnlineBackup服务有三种状态，1.yes, 2. no, 3. no internet service. 可以将2和3统一成一类。
 df['OnlineBackup'] = df['OnlineBackup'].apply(changeNoInternetServiceToNo)
 
 
-# In[39]:
+# In[135]:
 
 
 # 客户的OnlineBackup服务和客户流失之间的关系
 plt.bar(df['OnlineBackup'].unique(),df.query("Churn=='Yes'")['OnlineBackup'].value_counts(), alpha = 0.3,label = 'Churned')
 plt.bar(df['OnlineBackup'].unique(),df.query("Churn=='No'")['OnlineBackup'].value_counts(), alpha = 0.3,label = 'Non-Churned')
 plt.legend();
+plt.xlabel('Online Backup')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[40]:
+# In[136]:
 
 
 # 较之于留下的客户，流失的客户中，没有OnlineBackup的客户占比重较大。
 draw_pie('OnlineBackup')
 
 
-# In[41]:
+# In[137]:
 
 
 # 有OnlineBackup的客户月消费较高。
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'OnlineBackup', y = 'MonthlyCharges', color = base_color)
+sb.boxplot(data = df, x = 'OnlineBackup', y = 'MonthlyCharges', color = base_color);
 
 
-# In[42]:
+# In[138]:
 
 
 # 客户的DeviceProtection服务有三种状态，1.yes, 2. no, 3. no internet service. 可以将2和3统一成一类。
 df['DeviceProtection'] = df['DeviceProtection'].apply(changeNoInternetServiceToNo)
 
 
-# In[43]:
+# In[139]:
 
 
 # 客户的DeviceProtection服务和客户流失之间的关系
 plt.bar(df['DeviceProtection'].unique(),df.query("Churn=='Yes'")['DeviceProtection'].value_counts(), alpha = 0.3,label = 'Churned')
 plt.bar(df['DeviceProtection'].unique(),df.query("Churn=='No'")['DeviceProtection'].value_counts(), alpha = 0.3,label = 'Non-Churned')
 plt.legend();
+plt.xlabel('Device Protection')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[44]:
+# In[140]:
 
 
 # 较之于留下的客户，流失的客户中，没有DeviceProtection的客户占比重较大。
 draw_pie('DeviceProtection')
 
 
-# In[45]:
+# In[141]:
 
 
 # 有DeviceProtection的客户月消费较高。
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'DeviceProtection', y = 'MonthlyCharges', color = base_color)
+sb.boxplot(data = df, x = 'DeviceProtection', y = 'MonthlyCharges', color = base_color);
 
 
-# In[46]:
+# In[142]:
 
 
 # 客户的TechSupport服务有三种状态，1.yes, 2. no, 3. no internet service. 可以将2和3统一成一类。
 df['TechSupport'] = df['TechSupport'].apply(changeNoInternetServiceToNo)
 
 
-# In[47]:
+# In[143]:
 
 
 # 客户的TechSupport服务和客户流失之间的关系
 plt.bar(df['TechSupport'].unique(),df.query("Churn=='Yes'")['TechSupport'].value_counts(), alpha = 0.3,label = 'Churned')
 plt.bar(df['TechSupport'].unique(),df.query("Churn=='No'")['TechSupport'].value_counts(), alpha = 0.3,label = 'Non-Churned')
 plt.legend();
+plt.xlabel('TechSupport')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[48]:
+# In[144]:
 
 
 # 较之于留下的客户，流失的客户中，没有TechSupport的客户占比重较大。
 draw_pie('TechSupport')
 
 
-# In[49]:
+# In[145]:
 
 
 # 有TechSupport的客户月消费较高。
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'TechSupport', y = 'MonthlyCharges', color = base_color)
+sb.boxplot(data = df, x = 'TechSupport', y = 'MonthlyCharges', color = base_color);
 
 
-# In[50]:
+# In[146]:
 
 
 # 客户的StreamingTV服务有三种状态，1.yes, 2. no, 3. no internet service. 可以将2和3统一成一类。
 df['StreamingTV'] = df['StreamingTV'].apply(changeNoInternetServiceToNo)
 
 
-# In[51]:
+# In[147]:
 
 
 # 客户的StreamingTV服务和客户流失之间的关系
 plt.bar(df['StreamingTV'].unique(),df.query("Churn=='Yes'")['StreamingTV'].value_counts(), alpha = 0.3,label = 'Churned')
 plt.bar(df['StreamingTV'].unique(),df.query("Churn=='No'")['StreamingTV'].value_counts(), alpha = 0.3,label = 'Non-Churned')
 plt.legend();
+plt.xlabel('StreamingTV')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[52]:
+# In[148]:
 
 
 # 较之于留下的客户，流失的客户中，有StreamingTV的客户占比重较大。
 draw_pie('StreamingTV')
 
 
-# In[53]:
+# In[149]:
 
 
 # 有StreamingTV的客户月消费较高。
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'StreamingTV', y = 'MonthlyCharges', color = base_color)
+sb.boxplot(data = df, x = 'StreamingTV', y = 'MonthlyCharges', color = base_color);
 
 
-# In[54]:
+# In[150]:
 
 
 # 客户的StreamingMovies服务有三种状态，1.yes, 2. no, 3. no internet service. 可以将2和3统一成一类。
 df['StreamingMovies'] = df['StreamingMovies'].apply(changeNoInternetServiceToNo)
 
 
-# In[55]:
+# In[151]:
 
 
 # 客户的StreamingMovies服务和客户流失之间的关系
 plt.bar(df['StreamingMovies'].unique(),df.query("Churn=='Yes'")['StreamingMovies'].value_counts(), alpha = 0.3,label = 'Churned')
 plt.bar(df['StreamingMovies'].unique(),df.query("Churn=='No'")['StreamingMovies'].value_counts(), alpha = 0.3,label = 'Non-Churned')
 plt.legend();
+plt.xlabel('StreamingMovies')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[56]:
+# In[152]:
 
 
 # 较之于留下的客户，流失的客户中，有StreamingMovies的客户占比重较大。
 draw_pie('StreamingMovies')
 
 
-# In[57]:
+# In[153]:
 
 
 # 有StreamingMovies的客户月消费较高。
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'StreamingMovies', y = 'MonthlyCharges', color = base_color)
+sb.boxplot(data = df, x = 'StreamingMovies', y = 'MonthlyCharges', color = base_color);
 
 
-# In[58]:
+# In[154]:
 
 
 # 客户的合同年限和客户流失之间的关系
 plt.bar(df['Contract'].unique(),df.query("Churn=='Yes'")['Contract'].value_counts(), alpha = 0.3,label = 'Churned')
 plt.bar(df['Contract'].unique(),df.query("Churn=='No'")['Contract'].value_counts(), alpha = 0.3,label = 'Non-Churned')
 plt.legend();
+plt.xlabel('Contract')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[59]:
+# In[155]:
 
 
 # 留下的客户和流失的客户中，Contract的分布情况是不同的。
 draw_pie('Contract')
 
 
-# In[60]:
+# In[156]:
 
 
 # 客户是否PaperlessBilling和客户流失之间的关系
 plt.bar(df['PaperlessBilling'].unique(),df.query("Churn=='Yes'")['PaperlessBilling'].value_counts(), alpha = 0.3,label = 'Churned')
 plt.bar(df['PaperlessBilling'].unique(),df.query("Churn=='No'")['PaperlessBilling'].value_counts(), alpha = 0.3,label = 'Non-Churned')
 plt.legend();
+plt.xlabel('Paperless Billing')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[61]:
+# In[157]:
 
 
 # 使用PaperlessBilling的客户月消费较高。
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'PaperlessBilling', y = 'MonthlyCharges', color = base_color)
+sb.boxplot(data = df, x = 'PaperlessBilling', y = 'MonthlyCharges', color = base_color);
 
 
-# In[62]:
+# In[158]:
 
 
 # 较之于留下的客户，流失的客户中，PaperlessBilling的客户占比重较大。
 draw_pie('PaperlessBilling')
 
 
-# In[63]:
+# In[159]:
 
 
 # 客户的支付方式和客户流失之间的关系
 plt.bar(df['PaymentMethod'].unique(),df.query("Churn=='Yes'")['PaymentMethod'].value_counts(), alpha = 0.3,label = 'Churned')
 plt.bar(df['PaymentMethod'].unique(),df.query("Churn=='No'")['PaymentMethod'].value_counts(), alpha = 0.3,label = 'Non-Churned')
 plt.legend();
+plt.xlabel('Payment Method')
+plt.ylabel('Number of Churned Customers');
+plt.xticks(rotation=15);
 
 
-# In[64]:
+# In[160]:
 
 
 # 留下的客户和流失的客户中，PaymentMethod的分布情况是不同的。
 draw_pie('PaymentMethod')
 
 
-# In[65]:
+# In[161]:
 
 
 # 流失的客户中，以Electronic Check为支付方式的客户比重较大，而且以Electronic Check为支付方式的客户，订阅服务的时间较短。
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'PaymentMethod', y = 'tenure', color = base_color)
+sb.boxplot(data = df, x = 'PaymentMethod', y = 'tenure',color = base_color);
+plt.xticks(rotation=15);
 
 
-# In[66]:
+# In[162]:
 
 
 # 流失的客户中，以Electronic Check为支付方式的客户比重较大，而且以Electronic Check为支付方式的客户，订阅服务的时间较短。
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'PaymentMethod', y = 'MonthlyCharges', color = base_color)
+sb.boxplot(data = df, x = 'PaymentMethod', y = 'MonthlyCharges', color = base_color);
+plt.xticks(rotation=15);
 
 
-# In[67]:
+# In[163]:
 
 
 # tenure 的取值从1到72。
@@ -678,31 +719,33 @@ plt.bar(df['tenure_levels'].unique(),df.query("Churn=='Yes'")['tenure_levels'].v
 plt.bar(df['tenure_levels'].unique(),df.query("Churn=='No'")['tenure_levels'].value_counts().sort_index(), alpha = 0.3, label = 'Non-Churned')
 plt.legend();
 plt.title('Relation between tenure_levels and churn');
+plt.xlabel('Tenure levels')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[68]:
+# In[164]:
 
 
 # 留下的客户和流失的客户中，tenure的分布情况是不同的。
 draw_pie('tenure_levels')
 
 
-# In[69]:
+# In[165]:
 
 
 # 流失的客户订阅服务的时间普遍较短。
 base_color = sb.color_palette()[0]
-sb.boxplot(data = df, x = 'Churn', y = 'tenure', color = base_color)
+sb.boxplot(data = df, x = 'Churn', y = 'tenure', color = base_color);
 
 
-# In[70]:
+# In[166]:
 
 
 # 订购月数没有异常值
 sb.boxplot(x = df['tenure'], data=df);
 
 
-# In[71]:
+# In[167]:
 
 
 # TotalCharges 的取值从18.8到8684.8。
@@ -714,30 +757,32 @@ plt.bar(df['TC_levels'].unique(),df.query("Churn=='Yes'")['TC_levels'].value_cou
 plt.bar(df['TC_levels'].unique(),df.query("Churn=='No'")['TC_levels'].value_counts().sort_index(), alpha = 0.3, label = 'Non-Churned')
 plt.legend();
 plt.title('Relation between TC_levels and churn');
+plt.xlabel('Total Charges levels')
+plt.ylabel('Number of Churned Customers');
 
 
-# In[72]:
+# In[168]:
 
 
 # 留下的客户和流失的客户中，TotalCharges的分布情况是不同的。
 draw_pie('TC_levels')
 
 
-# In[73]:
+# In[169]:
 
 
 # 总消费额没有异常值
 sb.boxplot(x = df['TotalCharges'], data=df);
 
 
-# In[74]:
+# In[170]:
 
 
 # 数值类型变量的散点图
 pd.plotting.scatter_matrix(df[['TotalCharges','tenure','MonthlyCharges']], figsize=(15,15));
 
 
-# In[75]:
+# In[171]:
 
 
 df['TotalCharges']/df['MonthlyCharges']
@@ -789,7 +834,7 @@ df['TotalCharges']/df['MonthlyCharges']
 # - _完善的过程是否清晰记录了，其中使用了什么技术？_
 # - _完善过程中的结果以及最终结果是否清晰记录了？_
 
-# In[76]:
+# In[172]:
 
 
 # 请在这一代码框内编写在这一节你需要的程序
@@ -801,49 +846,16 @@ df['TotalCharges']/df['MonthlyCharges']
 # 你可以自由的使用任意数量和任意格式的代码框，但请在最终提交的报告中注意报告的整洁与通顺
 
 # 获得虚拟变量
-df[['no_Partner', 'Partner']] = pd.get_dummies(df['Partner'])
-df = df.drop('no_Partner', axis = 1)
-df[['no_Dependents', 'Dependents']] = pd.get_dummies(df['Dependents'])
-df = df.drop('no_Dependents', axis = 1)
-df[['DSL', 'Fiber','No_InternetService']] = pd.get_dummies(df['InternetService'])
-df = df.drop(['No_InternetService', 'InternetService'], axis = 1)
-df[['M2M', 'OneYear','TwoYear']] = pd.get_dummies(df['Contract'])
-df = df.drop(['TwoYear','Contract'], axis = 1)
-df[['no_pb', 'pb']] = pd.get_dummies(df['PaperlessBilling'])
-df = df.drop(['pb','PaperlessBilling'], axis = 1)
-df[['EC', 'MC','BT','CC']] = pd.get_dummies(df['PaymentMethod'])
-df = df.drop(['CC','PaymentMethod'], axis = 1)
+df1 = pd.get_dummies(df,prefix=['Partner','Dependents','IS','Contract','PB','PM','OS','DP','OB','TS','STV','SM','Churn'],
+                     columns=['Partner','Dependents','InternetService','Contract','PaperlessBilling','PaymentMethod','OnlineSecurity','DeviceProtection',
+                              'OnlineBackup','TechSupport','StreamingTV','StreamingMovies','Churn'])
+df1 = df1.drop(['Partner_No','Dependents_No','IS_No','Contract_Two year','PB_Yes',
+                'PM_Credit card (automatic)','OS_Yes','DP_Yes','OB_Yes','TS_Yes','STV_Yes','SM_Yes','Churn_No'], axis = 1)
 
-df[['no_OS', 'OS']] = pd.get_dummies(df['OnlineSecurity'])
-df = df.drop(['OS','OnlineSecurity'], axis = 1)
-
-df[['no_OB', 'OB']] = pd.get_dummies(df['OnlineBackup'])
-df = df.drop(['OB','OnlineBackup'], axis = 1)
-
-df[['no_DP', 'DP']] = pd.get_dummies(df['DeviceProtection'])
-df = df.drop(['DP','DeviceProtection'], axis = 1)
-
-df[['no_TS', 'TS']] = pd.get_dummies(df['TechSupport'])
-df = df.drop(['TS','TechSupport'], axis = 1)
-
-df[['no_STV', 'STV']] = pd.get_dummies(df['StreamingTV'])
-df = df.drop(['STV','StreamingTV'], axis = 1)
-
-df[['no_SM', 'SM']] = pd.get_dummies(df['StreamingMovies'])
-df = df.drop(['SM','StreamingMovies'], axis = 1)
+df1.head()
 
 
-df.head()
-
-
-# In[77]:
-
-
-df[['no_Churn', 'Churn']] = pd.get_dummies(df['Churn'])
-df = df.drop(['no_Churn'], axis = 1)
-
-
-# In[78]:
+# In[173]:
 
 
 def vif_calculator(df, response):
@@ -864,38 +876,64 @@ def vif_calculator(df, response):
     return vif
 
 
-# In[79]:
+# In[174]:
 
 
-df3=df[['DSL','Fiber','M2M','OneYear','no_pb','EC','MC','BT','tenure','MonthlyCharges','TotalCharges', 'no_OS','no_OB','no_DP','no_TS','no_STV','no_SM', 'SeniorCitizen','Churn']]
-vif_calculator(df3, 'Churn')
+df1.columns
 
 
-# In[80]:
+# In[175]:
 
 
-df3=df[['DSL','Fiber','M2M','OneYear','no_pb','EC','MC','BT','tenure', 'no_OS','no_OB','no_DP','no_TS','no_STV','no_SM', 'SeniorCitizen','Churn']]
-vif_calculator(df3, 'Churn')
+df1.rename(columns={'IS_Fiber optic':'IS_Fiber','Contract_Month-to-month':'Contract_MM','Contract_One year':'Contract_1Year',
+                    'PM_Bank transfer (automatic)':'PM_BT', 'PM_Electronic check':'PM_EC','PM_Mailed check':'PM_MC'},inplace=True);
 
 
-# In[81]:
+# In[176]:
 
 
-df['intercept'] = 1
+df1.columns
 
 
-# In[82]:
+# In[177]:
 
 
-logit_mod = sm.Logit(df['Churn'], df[['intercept','DSL','Fiber','M2M','OneYear','no_pb','EC','MC','BT','tenure', 'no_OS','no_OB','no_DP','no_TS','no_STV','no_SM', 'SeniorCitizen']])
+#df2=df1[['IS_DSL','IS_Fiber optic','Contract_Month-to-month','Contract_One year','PB_No','PM_Electronic check','PM_Mailed check',
+#         'PM_Bank transfer (automatic)','tenure','MonthlyCharges','TotalCharges', 'OS_No','OB_No','DP_No','TS_No','STV_No','SM_No', 
+#         'SeniorCitizen','Churn_Yes']]
+df2=df1[['SeniorCitizen', 'tenure', 'MonthlyCharges', 'TotalCharges','Partner_Yes', 'Dependents_Yes', 'IS_DSL',
+       'IS_Fiber', 'Contract_MM', 'Contract_1Year', 'PB_No', 'PM_BT', 'PM_EC',
+       'PM_MC', 'OS_No', 'DP_No', 'OB_No', 'TS_No', 'STV_No', 'SM_No',
+       'Churn_Yes']]
+vif_calculator(df2, 'Churn_Yes')
+
+
+# In[178]:
+
+
+df3=df1[['IS_DSL','IS_Fiber','Contract_MM','Contract_1Year','PB_No','PM_EC','PM_MC','PM_BT','tenure', 'OS_No','OB_No','DP_No','TS_No',
+         'STV_No','SM_No', 'SeniorCitizen','Churn_Yes','Partner_Yes']]
+vif_calculator(df3, 'Churn_Yes')
+
+
+# In[179]:
+
+
+df3['intercept'] = 1
+
+
+# In[180]:
+
+
+logit_mod = sm.Logit(df3['Churn_Yes'], df3[['intercept','IS_DSL','IS_Fiber','Contract_MM','Contract_1Year','PB_No','PM_EC','PM_MC','PM_BT','tenure', 'OS_No','OB_No','DP_No','TS_No','STV_No','SM_No', 'SeniorCitizen']])
 results = logit_mod.fit()
 results.summary()
 
 
-# In[83]:
+# In[181]:
 
 
-logit_mod = sm.Logit(df['Churn'], df[['Fiber','M2M','DSL','intercept','OneYear']])
+logit_mod = sm.Logit(df3['Churn_Yes'], df3[['IS_Fiber','Contract_MM','IS_DSL','intercept','Contract_1Year']])
 results = logit_mod.fit()
 results.summary()
 
@@ -906,11 +944,11 @@ results.summary()
 # 
 # 同时，为分类变量Churn，Partner，Dependents，InternetService，Contract，PaperlessBilling，PaymentMethod，OnlineSecurity，OnlineBackup，DeviceProtection，TechSupport，StreamingTV和StreamingMovies创建虚拟变量。
 # 
-# 为创建的虚拟变量和数据中的数值型变量（Tenure，MonthCharges，TotalCharges，SeniorCitizen）计算方差膨胀因子 (即 VIFs）。发现Fiber（21.1），Tenure（7.4），MonthCharges（25.5）和TotalCharges（10.8）的VIF值较高，首先考虑订购了Fiber服务的客户月消费较高，而且月消费量、总体消费量和订购服务月数之间有关联关系，因此尝试从模型中删除MonthCharges（25.5）和TotalCharges（10.8），重新计算VIFs，得到最高的为Fiber（4.0），这是可以接受的结果。
+# 为创建的虚拟变量和数据中的数值型变量（Tenure，MonthCharges，TotalCharges，SeniorCitizen）计算方差膨胀因子 (即 VIFs）。发现IS_Fiber（21.1），Tenure（7.5），MonthCharges（25.6）和TotalCharges（10.8）的VIF值较高，首先考虑订购了Fiber服务的客户月消费较高，而且月消费量、总体消费量和订购服务月数之间有关联关系，因此尝试从模型中删除MonthCharges（25.6）和TotalCharges（10.8），重新计算VIFs，得到最高的为IS_Fiber（4.0），这是可以接受的结果。
 # 
-# 对这些留下的特征做逻辑回归，得到模型。可是模型中的特征过多，考虑对其进行简化。在模型中，Fiber（1.78），M2M（1.38），M2M（1.38），和OneYear（0.67）的系数较高，其他特征的系数的绝对值均小于0.4，所以仅保留这些特征。重新对数据尽心逻辑回归，得到了这几个特征的系数：DLS（0.81），Fiber（1.75），M2M（2.95），OneYear（1.31）。
+# 对这些留下的特征做逻辑回归，得到模型。可是模型中的特征过多，考虑对其进行简化。在模型中，IS_Fiber（1.78），Contract_MM（1.38），IS_DSL（0.96），和Contract_1Year（0.67）的系数较高，其他特征的系数的绝对值均小于0.4，所以仅保留这些特征。重新对数据尽心逻辑回归，得到了这几个特征的系数：IS_DLS（0.81），IS_Fiber（1.75），Contract_MM（2.95），Contract_1Year（1.31）。
 # 
-# log($\frac{p}{1-p}$) = -4.50 +   0.81 * DLS + 1.75 * Fiber + 2.95 * M2M + 1.31 * OneYear
+# log($\frac{p}{1-p}$) = -4.50 +   0.81 * IS_DLS + 1.75 * IS_Fiber + 2.95 * Contract_MM + 1.31 * Contract_1Year
 
 # ---
 # <a id="result"></a>
@@ -923,7 +961,7 @@ results.summary()
 # - _模型是否对于这个问题是否足够稳健可靠？训练数据或输入的一些微小的改变是否会极大影响结果？（鲁棒性）_
 # - _这个模型得出的结果是否可信？_
 
-# In[84]:
+# In[182]:
 
 
 # 请在这一代码框内编写在这一节你需要的程序
@@ -933,14 +971,14 @@ results.summary()
 # 你可以自由的使用任意数量和任意格式的代码框，但请在最终提交的报告中注意报告的整洁与通顺
 
 # 交叉验证
-y = df['Churn']
-X = df[['intercept','DSL','Fiber','M2M','OneYear']]
+y = df3['Churn_Yes']
+X = df3[['intercept','IS_DSL','IS_Fiber','Contract_MM','Contract_1Year']]
 X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.20,random_state=0) 
 log_mod = LogisticRegression()
 log_mod.fit(X_train, y_train)
 
 
-# In[85]:
+# In[183]:
 
 
 # 预测结果
@@ -948,7 +986,7 @@ y_preds = log_mod.predict(X_test)
 y_preds
 
 
-# In[86]:
+# In[184]:
 
 
 # 输出准确率（precision），召回率（recall）和精确率（accuracy）。
@@ -961,9 +999,13 @@ confusion_matrix(y_test, y_preds)
 # 最终的模型建立了客户流失和一些关键因素的关系。考虑的模型的简洁性，在20个解释变量中选择了显著性较高且相关系数的绝对值较高的4个变量构建模型：客户是否订购DLS或Fiber的网络服务，客户是否选择了month-to-month或者1年期限的合同。
 # 
 # 利用混淆矩阵，准确率（precision），召回率（recall）和精确率（accuracy），对模型进行了评估：
-# 准确率：0.5433255269320844
-# 召回率：0.6287262872628726
-# 和精确率：0.7640369580668088
+# 准确率，即检测到为真，而且真实结果也为真的概率：0.5433255269320844
+# 召回率，即真实结果为真，而且准备识别的概率：0.6287262872628726
+# 精确率，即分类器正确分类的样本数与总样本数之比：0.7640369580668088
+# 
+# 因为模型的目的是对客户群进行分类，识别出潜在的流失客户，并采取一定的措施对其进行挽留，所以需要重点关注**准确率**和**召回率**。一方面，对潜在客户采取措施，需要付出一定的成本，准确率越高意味着付出成本的收益率越高；另一方面，模型的目的是尽可能多的识别潜在的流失客户，召回率越高，能识别出的潜在流失率越高。
+# 
+# 模型的准确率仅略高于50%，召回率略高于60%，还需要进一步的研究改进。
 
 # ---
 # <a id="conclusion"></a>
@@ -976,7 +1018,6 @@ confusion_matrix(y_test, y_preds)
 # - _你是否对一个与问题，数据集，输入数据，或结果相关的，重要的技术特性进行了可视化？_
 # - _可视化结果是否详尽的分析讨论了？_
 # - _绘图的坐标轴，标题，基准面是不是清晰定义了？_
-# 在这个项目里面，首先对
 # 
 # ### 对项目的思考
 # 在这一部分，你需要从头到尾总结一下整个问题的解决方案，讨论其中你认为有趣或困难的地方。从整体来反思一下整个项目，确保自己对整个流程是明确掌握的。需要考虑：
@@ -991,7 +1032,7 @@ confusion_matrix(y_test, y_preds)
 # - _是否可以有算法和技术层面的进一步的完善？_
 # - _是否有一些你了解到，但是你还没能够实践的算法和技术？_
 
-# In[95]:
+# In[185]:
 
 
 # 请在这一代码框内编写在这一节你需要的程序
@@ -1007,6 +1048,17 @@ plt.yticks(np.arange(maxtrix.shape[1]),[0,1])
 plt.show()
 
 
+# In[191]:
+
+
+# 尝试可视化ROC曲线
+y_score = log_mod.predict_proba(X_test)[:,1]
+fpr, tpr, _ = roc_curve(y_test, y_score)
+
+df = pd.DataFrame(dict(fpr=fpr, tpr=tpr))
+ggplot(df, aes(x='fpr', y='tpr')) +    geom_line() +    geom_abline(linetype='dashed')
+
+
 # 在项目中，遵循了提出问题-分析问题-建立模型-评价模型的顺序。
 # 
 # 首先，在提出问题阶段，讨论了项目的背景，明确定义了要解决的问题，并明确了解决问题的方法和期待结果，以及评价指标。受限于知识储备，仅仅是希望通过逻辑回归建立预测模型。
@@ -1015,7 +1067,18 @@ plt.show()
 # 
 # 再其次，在建立模型的阶段，对数据进行了预处理，并通过计算VIFs，识别了解释变量中的共线性，从而选择了对立性较强的解释变量建立模型。之后，对数据进行了拟合。在此基础上，对模型进行了优化，在保持其有效性的基础上使其变得简洁。但是关于如何确定特征选择的阈值，以及如何从业务知识上选择特征，其实并没有得出一个较好的标准。
 # 
-# 最后，对模型进行了评价。对于如何模型的评价，除了混淆矩阵，以及准确率，召回率和精确率之外，还有很多种方法，如 ROC 曲线 与 AUC，从阈值选取角度出发来研究学习器泛化性，需要进一步研究。即使是项目中采用的混淆矩阵等评价方法，运用的也不是很熟练，很难判定什么程度的准确率，召回率和精确率才是“可以接受”的。
+# 最后，对模型进行了评价。对于如何模型的评价，除了混淆矩阵，以及准确率，召回率和精确率之外，还有很多种方法，如 ROC 曲线 与 AUC，从阈值选取角度出发来研究学习器泛化性，需要进一步研究。即使是项目中采用的混淆矩阵等评价方法，运用的也不是很熟练，很难判定什么程度的准确率，召回率和精确率才是“可以接受”的。在Uda_Ctiy导师的指导下，分析了准确率、召回率和精确率等评价指标的实际含义，以及对于解决问题的重要程度，并对指标的优劣性提出了自己的看法，进而明确了后续优化的方向。
+# 
+# 同时在Uda_City导师的指导下，尝试用ROC曲线对模型的效果进行了可视化。ROC曲线主要关注两个指标：敏感性（Sensitivity，又称灵敏性或者查全率），和特异性（specificity）。在图中，敏感性用纵轴（tpr）表示，特异性用横轴（fpr）表示。
+# 
+# 敏感性：模型作出正确判断的比例：
+# $\frac{True Positive}{ True Positive+ False Negative}$
+# 
+# 特异性：模型作出错误判断的比例：
+# $\frac{False Positive}{ False Positive+ True Negative}$
+# 
+# 
+# 从ROC图形来看，似乎模型的效果还不错！[参考](https://community.alteryx.com/t5/Data-Science-Blog/ROC-Curves-in-Python-and-R/ba-p/138430)
 # 
 
 # ----------
